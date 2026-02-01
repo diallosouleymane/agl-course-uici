@@ -46,7 +46,7 @@ export function DepartmentForm({ initialData, colleges, mode }: DepartmentFormPr
     formState: { errors },
   } = useForm<DepartmentInput>({
     resolver: zodResolver(departmentSchema),
-    defaultValues: initialData || { collegeId: colleges[0]?.id },
+    defaultValues: initialData ? { ...initialData, headTeacherId: initialData.headTeacherId ?? undefined } : { collegeId: colleges[0]?.id },
   });
 
   const collegeId = watch('collegeId');

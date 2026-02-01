@@ -3,11 +3,15 @@ import { auth } from './auth';
 import { UserRole } from './generated/prisma';
 
 export async function getSession() {
-  const headersList = await headers();
-
-  return await auth.api.getSession({
-    headers: headersList,
-  });
+  try {
+    const headersList = await headers();
+    const session = await auth.api.getSession({
+      headers: new Headers(headersList),
+    });
+    return session;
+  } catch {
+    return null;
+  }
 }
 
 export async function requireAuth() {

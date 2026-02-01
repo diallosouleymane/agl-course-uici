@@ -107,9 +107,9 @@ export default async function StudentPage({ params }: StudentPageProps) {
                   {student.grades.map((grade) => (
                     <tr key={grade.id} className="border-b">
                       <td className="p-3">{grade.subject.name}</td>
-                      <td className="p-3 text-center font-medium">{grade.value}</td>
-                      <td className="p-3 text-center">{grade.maxValue}</td>
-                      <td className="p-3 text-center font-medium">{((grade.value / grade.maxValue) * 20).toFixed(1)}</td>
+                      <td className="p-3 text-center font-medium">{Number(grade.value)}</td>
+                      <td className="p-3 text-center">{Number(grade.maxValue)}</td>
+                      <td className="p-3 text-center font-medium">{((Number(grade.value) / Number(grade.maxValue)) * 20).toFixed(1)}</td>
                       <td className="p-3 text-right text-sm text-gray-600">{new Date(grade.date).toLocaleDateString('fr-FR')}</td>
                     </tr>
                   ))}

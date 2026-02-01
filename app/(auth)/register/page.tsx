@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'sonner';
@@ -10,38 +10,50 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-function LoginForm() {
+export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/dashboard';
-
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error: signInError } = await authClient.signIn.email({
+      const { error: signUpError } = await authClient.signUp.email({
         email,
         password,
+        name,
       });
 
-      if (signInError) {
-        setError(signInError.message || 'Email ou mot de passe incorrect');
-        toast.error(signInError.message || 'Email ou mot de passe incorrect');
+      if (signUpError) {
+        setError(signUpError.message || 'Erreur lors de l\'inscription');
+        toast.error(signUpError.message || 'Erreur lors de l\'inscription');
       } else {
-        toast.success('Connexion réussie');
-        router.push(from);
+        toast.success('Inscription réussie !');
+        router.push('/dashboard');
         router.refresh();
       }
     } catch (err) {
-      setError('Email ou mot de passe incorrect');
-      toast.error('Email ou mot de passe incorrect');
+      const msg = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -50,13 +62,24 @@ function LoginForm() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
+        <CardTitle className="text-2xl font-bold">Inscription</CardTitle>
         <CardDescription>
-          Entrez vos identifiants pour accéder au système de gestion académique
+          Créer un compte pour accéder au système de gestion académique
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nom complet</Label>
+            <Input
+              id="name"
+              placeholder="Jean Dupont"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -74,8 +97,21 @@ function LoginForm() {
             <Input
               id="password"
               type="password"
+              placeholder="Minimum 6 caractères"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirmer le mot de passe"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               disabled={loading}
             />
@@ -86,34 +122,17 @@ function LoginForm() {
             </div>
           )}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? 'Inscription...' : "S'inscrire"}
           </Button>
         </form>
 
         <div className="mt-4 text-center text-sm text-gray-600">
-          Pas encore de compte ?{' '}
-          <Link href="/register" className="text-blue-600 hover:underline">
-            S&apos;inscrire
+          Déjà un compte ?{' '}
+          <Link href="/login" className="text-blue-600 hover:underline">
+            Se connecter
           </Link>
-        </div>
-
-        <div className="mt-6 text-sm text-gray-600">
-          <p className="font-semibold mb-2">Comptes de test:</p>
-          <ul className="space-y-1 text-xs">
-            <li>&bull; Admin: admin@school.com / admin123</li>
-            <li>&bull; Responsable: m.martin@school.com / teacher123</li>
-            <li>&bull; Enseignant: j.dupont@school.com / teacher123</li>
-          </ul>
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
   );
 }

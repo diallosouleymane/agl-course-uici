@@ -8,9 +8,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Enum for user roles
+
 enum UserRole {
   ADMIN
   DEPARTMENT_HEAD
@@ -19,16 +21,17 @@ enum UserRole {
 }
 
 // User model - extends better-auth
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   name          String?
   password      String?
   image         String?
-  role          UserRole  @default(STUDENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role          UserRole @default(STUDENT)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations - a user can be either a teacher or a student
   teacher       Teacher?
@@ -38,9 +41,11 @@ model User {
   verifications Verification[]
 
   @@index([email])
+  @@map("user")
 }
 
 // Better-auth session model
+
 model Session {
   id        String   @id @default(cuid())
   userId    String
@@ -54,47 +59,66 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("session")
 }
 
 // Better-auth account model
+
 model Account {
-  id           String   @id @default(cuid())
-  userId       String
-  provider     String
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String
   providerAccountId String
-  accessToken  String?  @db.Text
-  refreshToken String?  @db.Text
-  expiresAt    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  accessToken       String?   @db.Text
+  refreshToken      String?   @db.Text
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId             String
+  providerId            String
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+  @@map("account")
 }
 
 // Better-auth verification model
+
 model Verification {
-  id         String   @id @default(cuid())
-  userId     String
-  type       String
-  token      String   @unique
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  identifier String
+  value      String
+  updatedAt  DateTime @updatedAt
+
   @@index([userId])
+  @@index([identifier])
+  @@map("verification")
 }
 
 // College model
+
 model College {
-  id          String       @id @default(cuid())
-  name        String
-  websiteUrl  String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  websiteUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   departments Department[]
 
@@ -102,19 +126,20 @@ model College {
 }
 
 // Department model
+
 model Department {
-  id             String    @id @default(cuid())
-  name           String
-  collegeId      String
-  headTeacherId  String?   @unique
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  collegeId     String
+  headTeacherId String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
-  college        College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-  headTeacher    Teacher?  @relation("DepartmentHead", fields: [headTeacherId], references: [id], onDelete: SetNull)
-  teachers       Teacher[] @relation("DepartmentTeachers")
-  subjects       Subject[]
+  college     College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  headTeacher Teacher?  @relation("DepartmentHead", fields: [headTeacherId], references: [id], onDelete: SetNull)
+  teachers    Teacher[] @relation("DepartmentTeachers")
+  subjects    Subject[]
 
   @@unique([collegeId, name])
   @@index([collegeId])
@@ -122,35 +147,37 @@ model Department {
 }
 
 // Classroom model
+
 model Classroom {
-  id        String    @id @default(cuid())
-  name      String    @unique
+  id        String   @id @default(cuid())
+  name      String   @unique
   capacity  Int
   location  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  subjects  Subject[]
+  subjects Subject[]
 
   @@index([name])
 }
 
 // Subject model (Matière)
+
 model Subject {
-  id           String       @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
-  code         String       @unique
+  code         String   @unique
   classroomId  String
   departmentId String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  classroom    Classroom    @relation(fields: [classroomId], references: [id], onDelete: Restrict)
-  department   Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  teachers     Teacher[]
-  enrollments  Enrollment[]
-  grades       Grade[]
+  classroom   Classroom    @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  department  Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  teachers    Teacher[]
+  enrollments Enrollment[]
+  grades      Grade[]
 
   @@index([departmentId])
   @@index([classroomId])
@@ -158,25 +185,26 @@ model Subject {
 }
 
 // Teacher model (Enseignant)
+
 model Teacher {
-  id                  String      @id @default(cuid())
-  userId              String      @unique
-  nom                 String
-  prenom              String
-  tel                 String
-  mail                String      @unique
-  dateFunction        DateTime    // Date de prise de fonction
-  indice              String      // Indice de l'enseignant
-  departmentId        String
-  subjectId           String      // Un enseignant enseigne UNE seule matière
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  nom          String
+  prenom       String
+  tel          String
+  mail         String   @unique
+  dateFunction DateTime // Date de prise de fonction
+  indice       String // Indice de l'enseignant
+  departmentId String
+  subjectId    String // Un enseignant enseigne UNE seule matière
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  department          Department  @relation("DepartmentTeachers", fields: [departmentId], references: [id], onDelete: Cascade)
-  subject             Subject     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
-  headOfDepartment    Department? @relation("DepartmentHead")
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department       Department  @relation("DepartmentTeachers", fields: [departmentId], references: [id], onDelete: Cascade)
+  subject          Subject     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  headOfDepartment Department? @relation("DepartmentHead")
 
   @@index([userId])
   @@index([departmentId])
@@ -185,16 +213,17 @@ model Teacher {
 }
 
 // Student model (Étudiant)
+
 model Student {
-  id          String       @id @default(cuid())
-  userId      String       @unique
+  id          String   @id @default(cuid())
+  userId      String   @unique
   nom         String
   prenom      String
   tel         String
-  mail        String       @unique
-  anneeEntree Int          // Année d'entrée
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  mail        String   @unique
+  anneeEntree Int // Année d'entrée
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -207,6 +236,7 @@ model Student {
 }
 
 // Enrollment model (Inscription étudiant-matière)
+
 model Enrollment {
   id         String   @id @default(cuid())
   studentId  String
@@ -214,8 +244,8 @@ model Enrollment {
   enrolledAt DateTime @default(now())
 
   // Relations
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, subjectId])
   @@index([studentId])
@@ -223,19 +253,20 @@ model Enrollment {
 }
 
 // Grade model (Note)
+
 model Grade {
   id        String   @id @default(cuid())
   studentId String
   subjectId String
-  value     Decimal  @db.Decimal(5, 2)  // Note obtenue
-  maxValue  Decimal  @db.Decimal(5, 2)  // Note maximale
+  value     Decimal  @db.Decimal(5, 2) // Note obtenue
+  maxValue  Decimal  @db.Decimal(5, 2) // Note maximale
   date      DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([studentId, subjectId])
   @@index([date])

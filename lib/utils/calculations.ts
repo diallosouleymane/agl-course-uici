@@ -1,5 +1,4 @@
 import { prisma } from '../prisma';
-import { Decimal } from '../generated/prisma/client';
 
 /**
  * Normalize a grade to a scale of /20
@@ -12,8 +11,8 @@ export function normalizeGrade(value: number, maxValue: number): number {
 /**
  * Convert Decimal to number
  */
-function decimalToNumber(decimal: Decimal): number {
-  return parseFloat(decimal.toString());
+function decimalToNumber(decimal: unknown): number {
+  return Number(decimal);
 }
 
 /**

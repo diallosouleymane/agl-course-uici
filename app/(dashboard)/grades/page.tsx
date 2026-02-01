@@ -24,7 +24,7 @@ export default async function GradesPage() {
           <Link href="/grades/new"><Plus className="h-4 w-4 mr-2" />Nouvelle note</Link>
         </Button>
       </div>
-      <GradesTable grades={grades} />
+      <GradesTable grades={grades.map(g => ({ ...g, value: Number(g.value), maxValue: Number(g.maxValue) }))} />
     </div>
   );
 }

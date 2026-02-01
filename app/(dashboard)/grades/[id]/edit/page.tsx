@@ -28,7 +28,14 @@ export default async function EditGradePage({ params }: EditGradePageProps) {
         <h1 className="text-3xl font-bold">Modifier la Note</h1>
         <p className="text-gray-600 mt-2">Modifier la note de {grade.student.prenom} {grade.student.nom}</p>
       </div>
-      <GradeForm mode="edit" initialData={grade} students={students} subjects={subjects} />
+      <GradeForm mode="edit" initialData={{
+        id: grade.id,
+        studentId: grade.studentId,
+        subjectId: grade.subjectId,
+        value: Number(grade.value),
+        maxValue: Number(grade.maxValue),
+        date: grade.date,
+      }} students={students} subjects={subjects} />
     </div>
   );
 }
