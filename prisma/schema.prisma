@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enum for user roles
+enum UserRole {
+  ADMIN
+  DEPARTMENT_HEAD
+  TEACHER
+  STUDENT
+}
+
+// User model - extends better-auth
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  password      String?
+  image         String?
+  role          UserRole  @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations - a user can be either a teacher or a student
+  teacher       Teacher?
+  student       Student?
+  sessions      Session[]
+  accounts      Account[]
+  verifications Verification[]
+
+  @@index([email])
+}
+
+// Better-auth session model
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Better-auth account model
+model Account {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String
+  providerAccountId String
+  accessToken  String?  @db.Text
+  refreshToken String?  @db.Text
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Better-auth verification model
+model Verification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// College model
+model College {
+  id          String       @id @default(cuid())
+  name        String
+  websiteUrl  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  departments Department[]
+
+  @@index([name])
+}
+
+// Department model
+model Department {
+  id             String    @id @default(cuid())
+  name           String
+  collegeId      String
+  headTeacherId  String?   @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  college        College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  headTeacher    Teacher?  @relation("DepartmentHead", fields: [headTeacherId], references: [id], onDelete: SetNull)
+  teachers       Teacher[] @relation("DepartmentTeachers")
+  subjects       Subject[]
+
+  @@unique([collegeId, name])
+  @@index([collegeId])
+  @@index([headTeacherId])
+}
+
+// Classroom model
+model Classroom {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  capacity  Int
+  location  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  subjects  Subject[]
+
+  @@index([name])
+}
+
+// Subject model (Matière)
+model Subject {
+  id           String       @id @default(cuid())
+  name         String
+  code         String       @unique
+  classroomId  String
+  departmentId String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  classroom    Classroom    @relation(fields: [classroomId], references: [id], onDelete: Restrict)
+  department   Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  teachers     Teacher[]
+  enrollments  Enrollment[]
+  grades       Grade[]
+
+  @@index([departmentId])
+  @@index([classroomId])
+  @@index([code])
+}
+
+// Teacher model (Enseignant)
+model Teacher {
+  id                  String      @id @default(cuid())
+  userId              String      @unique
+  nom                 String
+  prenom              String
+  tel                 String
+  mail                String      @unique
+  dateFunction        DateTime    // Date de prise de fonction
+  indice              String      // Indice de l'enseignant
+  departmentId        String
+  subjectId           String      // Un enseignant enseigne UNE seule matière
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department          Department  @relation("DepartmentTeachers", fields: [departmentId], references: [id], onDelete: Cascade)
+  subject             Subject     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  headOfDepartment    Department? @relation("DepartmentHead")
+
+  @@index([userId])
+  @@index([departmentId])
+  @@index([subjectId])
+  @@index([mail])
+}
+
+// Student model (Étudiant)
+model Student {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  nom         String
+  prenom      String
+  tel         String
+  mail        String       @unique
+  anneeEntree Int          // Année d'entrée
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  grades      Grade[]
+
+  @@index([userId])
+  @@index([anneeEntree])
+  @@index([mail])
+}
+
+// Enrollment model (Inscription étudiant-matière)
+model Enrollment {
+  id         String   @id @default(cuid())
+  studentId  String
+  subjectId  String
+  enrolledAt DateTime @default(now())
+
+  // Relations
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@index([studentId])
+  @@index([subjectId])
+}
+
+// Grade model (Note)
+model Grade {
+  id        String   @id @default(cuid())
+  studentId String
+  subjectId String
+  value     Decimal  @db.Decimal(5, 2)  // Note obtenue
+  maxValue  Decimal  @db.Decimal(5, 2)  // Note maximale
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, subjectId])
+  @@index([date])
+}
